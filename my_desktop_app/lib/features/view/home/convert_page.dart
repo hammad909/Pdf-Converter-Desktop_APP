@@ -1,26 +1,22 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:my_desktop_app/features/convert/data/conversion_Service.dart';
 import 'package:my_desktop_app/features/convert/data/conversion_options.dart';
-import 'package:my_desktop_app/features/convert/data/conversion_storage.dart';
+import 'package:my_desktop_app/features/convert/data/document_preview.dart';
+import 'package:my_desktop_app/features/convert/data/history_item.dart';
 import 'package:my_desktop_app/features/convert/models/conversion_option.dart';
 import 'package:my_desktop_app/features/view/widgets/conversion_card.dart';
 import 'package:my_desktop_app/features/view/widgets/section_header.dart';
 import 'package:my_desktop_app/server/server_manager.dart';
+import 'package:path/path.dart' as p;
 
-
-/// ---------------- SERVER PROVIDER ----------------
 
 final serverUriProvider = FutureProvider<Uri>((ref) async {
   return ServerManager.startAndGetServerUri();
 });
-
-/// ---------------- CONVERT PAGE ----------------
 
 class ConvertPage extends ConsumerStatefulWidget {
   const ConvertPage({super.key});
@@ -115,8 +111,6 @@ class _ConvertPageState extends ConsumerState<ConvertPage> {
   }
 }
 
-/// ---------------- GRID ----------------
-
 class _ConversionGrid extends StatelessWidget {
   final List<ConversionOption> options;
   final void Function(ConversionOption) onTap;
@@ -197,7 +191,6 @@ void _stopConversionProgress() {
   _conversionTimer?.cancel();
 }
 
-  /// ---------------- FILE PICKER ----------------
   Future<void> pickFile() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -313,41 +306,72 @@ Future<void> uploadFile() async {
   }
 }
 
-Future<void> saveConvertedFile() async {
-  if (convertedFileName == null) return;
+Future<void> convertAndSave() async {
+  if (selectedFile == null) return;
 
   setState(() {
     isLoading = true;
     progress = 0.0;
     errorMessage = null;
+    convertedFileName = null;
+    savedFile = null;
   });
 
   try {
     final service = ConversionService(serverUri: widget.serverUri);
 
-    final bytes = await service.downloadConvertedFileBytes(convertedFileName!);
+    final fileName = await service.uploadFileForConversion(
+      inputFile: selectedFile!,
+      endpoint: widget.option.endpoint,
+      onProgress: (value) {
+        setState(() {
+          progress = (value * 0.7).clamp(0.0, 0.7);
+        });
 
+        if (value >= 1.0) _startConversionProgress();
+      },
+    );
+
+    _stopConversionProgress();
+    setState(() => progress = 1.0);
+    convertedFileName = fileName;
+    String? savePath = await FilePicker.platform.saveFile(
+      dialogTitle: 'Save Converted File',
+      fileName: fileName,
+      type: FileType.custom,
+      allowedExtensions: widget.option.allowedExtensions,
+    );
+
+    if (savePath == null) {
+      setState(() => progress = 0.0);
+      return;
+    }
+
+    final extension = p.extension(fileName);
+    if (!savePath.toLowerCase().endsWith(extension.toLowerCase())) {
+      savePath += extension;
+    }
+
+    final bytes = await service.downloadConvertedFileBytes(fileName);
 
     final file = await ConversionStorage.saveFile(
-      fileName: convertedFileName!,
+      fullPath: savePath,
       bytes: bytes,
     );
 
-    setState(() {
-      savedFile = file; 
-    });
+    setState(() => savedFile = file);
 
-showTopNotification('File saved successfully in "Converted Files" folder!');
-
+    showTopNotification('File saved successfully!');
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('File saved successfully in "Converted Files" folder!'),
+          content: Text('File saved successfully!'),
           duration: Duration(seconds: 3),
         ),
       );
     }
   } catch (e) {
+    _stopConversionProgress();
     setState(() => errorMessage = _mapError(e));
   } finally {
     setState(() => isLoading = false);
@@ -355,8 +379,6 @@ showTopNotification('File saved successfully in "Converted Files" folder!');
 }
 
 
-
-  /// ---------------- ERROR HANDLING ----------------
   String _mapError(dynamic e) {
     if (e is SocketException) {
       return 'Unable to connect to the conversion server.';
@@ -365,159 +387,147 @@ showTopNotification('File saved successfully in "Converted Files" folder!');
     }
     return 'Conversion failed. Unsupported or corrupted file.';
   }
-
-  /// ---------------- BUILD UI ----------------
+  
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
+Widget build(BuildContext context) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      TextButton.icon(
+        onPressed: widget.onBack,
+        icon: const Icon(Icons.arrow_back),
+        label: const Text('Back'),
+      ),
+      const SizedBox(height: 16),
+      Text(widget.option.title,
+          style: Theme.of(context).textTheme.headlineMedium),
+      const SizedBox(height: 8),
+      Text(widget.option.description),
+      const SizedBox(height: 32),
+
+Expanded(
+  child: Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+
+      Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextButton.icon(
-            onPressed: widget.onBack,
-            icon: const Icon(Icons.arrow_back),
-            label: const Text('Back'),
+
+          ConstrainedBox(
+            constraints: const BoxConstraints(
+              minWidth: 220,
+              maxWidth: 260,
+            ),
+            child: InkWell(
+              onTap: isLoading ? null : pickFile,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    width: 1.4,
+                    color: isFileReady
+                        ? Colors.green
+                        : selectedFile != null
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).dividerColor,
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    if (isLoading)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 12,
+                        ),
+                      )
+                    else
+                      Icon(
+                        selectedFile != null
+                            ? Icons.check_circle
+                            : Icons.upload_file,
+                        size: 48,
+                      ),
+                    const SizedBox(height: 12),
+                    Text(
+                      selectedFile == null
+                          ? 'Click to select a file'
+                          : p.basename(selectedFile!.path),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
+
           const SizedBox(height: 16),
-          Text(widget.option.title,
-              style: Theme.of(context).textTheme.headlineMedium),
-          const SizedBox(height: 8),
-          Text(widget.option.description),
-          const SizedBox(height: 32),
 
-          /// FILE PICKER
-          InkWell(
-            onTap: isLoading ? null : pickFile,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-  width: 1.4,
-  color: isFileReady
-      ? Colors.green
-      : selectedFile != null
-          ? Theme.of(context).colorScheme.primary
-          : Theme.of(context).dividerColor,
-),
-
-              ),
-              child: Column(
-                children: [
-                if (isLoading)
-  Container(
-    height: 12, // make it thicker
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(6),
-      color: Colors.grey.shade300, // background color
-    ),
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(6),
-      child: LinearProgressIndicator(
-        value: progress,
-        backgroundColor: Colors.transparent,
-        valueColor: AlwaysStoppedAnimation<Color>(Colors.blueAccent),
-        minHeight: 12, 
+          SizedBox(
+            width: 220,
+            height: 44,
+            child: ElevatedButton.icon(
+              onPressed:
+                  selectedFile != null && !isLoading ? convertAndSave : null,
+              icon: const Icon(Icons.upload_file),
+              label: const Text('Convert & Save'),
+            ),
+          ),
+        ],
       ),
+
+      const SizedBox(width: 24),
+
+if (selectedFile != null)
+  Expanded(
+    child: DocumentPreview(
+      file: savedFile ?? selectedFile!, 
+      maxWidth: double.infinity,
+      height: double.infinity, 
     ),
-  )
-else
-  Icon(
-    selectedFile != null ? Icons.check_circle : Icons.upload_file,
-    size: 48,
   ),
-
-                  const SizedBox(height: 12),
-                 Column(
-  children: [
-    Text(
-      selectedFile == null
-          ? 'Click to select a file'
-          : selectedFile!.path.split(Platform.pathSeparator).last,
-      style: const TextStyle(fontWeight: FontWeight.w500),
-    ),
-
-    const SizedBox(height: 6),
-
-    if (isFileReady)
-      Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(Icons.verified, color: Colors.green, size: 18),
-          const SizedBox(width: 6),
-          Text(
-            'Conversion completed · Ready to save',
-            style: TextStyle(
-              color: Colors.green.shade700,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-  ],
+    ],
+  ),
 ),
 
-                ],
-              ),
-            ),
+
+
+      const SizedBox(height: 24),
+
+      if (errorMessage != null)
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.08),
+            border: Border.all(color: Colors.red),
+            borderRadius: BorderRadius.circular(8),
           ),
-
-          const SizedBox(height: 24),
-
-          if (errorMessage != null)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.08),
-                border: Border.all(color: Colors.red),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.error, color: Colors.red),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(errorMessage!)),
-                ],
-              ),
-            ),
-
-          const SizedBox(height: 24),
-
-
-          Align(
-            alignment: Alignment.centerRight,
-            child: Row(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: selectedFile != null && !isLoading ? uploadFile : null,
-                  icon: const Icon(Icons.upload_file),
-                  label: const Text('Convert'),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton.icon(
-                  onPressed: convertedFileName != null && !isLoading ? saveConvertedFile : null,
-                  icon: const Icon(Icons.save),
-                  label: const Text('Save Converted File'),
-                ),
-              ],
-            ),
+          child: Row(
+            children: [
+              const Icon(Icons.error, color: Colors.red),
+              const SizedBox(width: 12),
+              Expanded(child: Text(errorMessage!)),
+            ],
           ),
+        ),
 
-
-          if (savedFile != null) ...[
-            const SizedBox(height: 24),
-            Row(
-              children: const [
-                Icon(Icons.check_circle, color: Colors.green),
-                SizedBox(width: 8),
-                Text('Conversion completed successfully'),
-              ],
-            ),
+      if (savedFile != null) ...[
+        const SizedBox(height: 24),
+        Row(
+          children: const [
+            Icon(Icons.check_circle, color: Colors.green),
+            SizedBox(width: 8),
+            Text('Conversion completed successfully'),
           ],
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ],
+  );
+}
 }

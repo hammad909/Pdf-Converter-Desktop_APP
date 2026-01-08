@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:my_desktop_app/features/convert/data/history_item.dart';
 import 'package:my_desktop_app/features/convert/service/merge_service.dart';
 import 'package:my_desktop_app/features/convert/service/split_service.dart';
 import 'package:path/path.dart' as path;
@@ -47,7 +48,6 @@ class _SplitMainPageState extends State<SplitDetails> {
     });
 
     Navigator.push(
-      // ignore: use_build_context_synchronously
       context,
       MaterialPageRoute(
         builder: (_) => SplitPagesPreviewPage(splitPages: pages),
@@ -55,127 +55,130 @@ class _SplitMainPageState extends State<SplitDetails> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+@override
+Widget build(BuildContext context) {
+  final theme = Theme.of(context);
 
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Material(
-            color: Colors.transparent,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-  color: theme.cardTheme.color,
-  borderRadius: BorderRadius.circular(16),
-  boxShadow: const [
-    BoxShadow(
-      color: Colors.black26,
-      blurRadius: 6,
-      offset: Offset(0, 3),
-    ),
-  ],
-  border: Border.all(
-    color: selectedPdf != null
-        ? theme.colorScheme.primary
-        // ignore: deprecated_member_use
-        : theme.colorScheme.onSurface.withOpacity(0.3),
-    width: 1.5,
-  ),
-),
+  return Padding(
+    padding: const EdgeInsets.all(24),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Split PDF', style: theme.textTheme.headlineMedium),
+        const SizedBox(height: 4),
+        Text('Select a PDF to split into pages', style: theme.textTheme.bodyMedium),
+        const SizedBox(height: 24),
+        
+        Expanded(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
 
-              width: 300,
-              height: 180,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: pickPdf,
-                child: Center(
-                  child: selectedPdf != null
-                      ? Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 50,
-                              height: 50,
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.onPrimary,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.check,
-                                color: theme.colorScheme.primary,
-                                size: 30,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              selectedPdf!.name,
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: theme.colorScheme.onPrimary,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        )
-                      : Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.upload_file,
-                              size: 48,
-                              color:
-                                  // ignore: deprecated_member_use
-                                  theme.colorScheme.onSurface.withOpacity(0.6),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Click to select PDF',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w500,
-                                color: theme.colorScheme.onSurface,
-                              ),
-                            ),
-                          ],
+              Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  InkWell(
+                    onTap: pickPdf,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 220,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: selectedPdf != null ? Colors.green : theme.dividerColor,
+                          width: 1.5,
                         ),
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 16), 
-
-          SizedBox(
-            width: 180,
-            height: 44,
-            child: ElevatedButton.icon(
-              onPressed: selectedPdf == null || isSplitting ? null : splitPdf,
-              icon: const Icon(Icons.call_split),
-              label: isSplitting
-                  ? SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: theme.colorScheme.onPrimary,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    )
-                  : const Text('Split PDF'),
-              style: ElevatedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Center(
+                        child: selectedPdf != null
+                            ? Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.picture_as_pdf, color: Colors.red, size: 48),
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    selectedPdf!.name,
+                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              )
+                            : Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.upload_file, size: 48, color: theme.dividerColor),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'Click to select a file',
+                                    style: TextStyle(fontWeight: FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  SizedBox(
+                    width: 220,
+                    height: 44,
+                    child: ElevatedButton.icon(
+                      onPressed: selectedPdf == null || isSplitting ? null : splitPdf,
+                      icon: const Icon(Icons.call_split),
+                      label: isSplitting
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Split PDF'),
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ),
+
+              const SizedBox(width: 24),
+
+              if (selectedPdf != null)
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: theme.dividerColor, width: 1.5),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: SfPdfViewer.file(
+                        File(selectedPdf!.path!),
+                        canShowScrollHead: false,
+                        canShowScrollStatus: false,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
 }
+
+}
+
 
 
 
@@ -202,11 +205,21 @@ class _SplitPagesPreviewPageState extends State<SplitPagesPreviewPage> {
     Colors.cyan,
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    pageGroupColors = List<Color?>.filled(widget.splitPages.length, null);
-  }
+  late final ScrollController _gridScrollController;
+
+@override
+void initState() {
+  super.initState();
+  pageGroupColors = List<Color?>.filled(widget.splitPages.length, null);
+  _gridScrollController = ScrollController();
+}
+
+@override
+void dispose() {
+  _gridScrollController.dispose();
+  super.dispose();
+}
+
 
   void assignColorToPage(int index) {
     if (selectedColor == null) return;
@@ -240,42 +253,39 @@ Future<void> saveGroupedPages() async {
   if (groups.isEmpty) return;
 
   try {
-
-    final documentsDir = await getApplicationDocumentsDirectory();
-
-    final outputDir = Directory(
-      path.join(documentsDir.path, 'Converted Files'),
-    );
-
-    if (!outputDir.existsSync()) {
-      outputDir.createSync(recursive: true);
-    }
-
-    int groupIndex = 1;
-
-    while (File(path.join(outputDir.path, 'group_$groupIndex.pdf')).existsSync()) {
-      groupIndex++;
-    }
-
     for (final entry in groups.entries) {
       final files = entry.value;
       if (files.isEmpty) continue;
 
-      final outputPath = path.join(
-        outputDir.path,
-        'group_$groupIndex.pdf',
+      String defaultName = files.length > 1 ? 'merged_group.pdf' : path.basename(files.first.path);
+      String? savePath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Grouped PDF',
+        fileName: defaultName,
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
       );
 
-      if (files.length == 1) {
-        await files.first.copy(outputPath);
-      } else {
-        await PdfMergeService.mergePdfs(
-          inputFiles: files,
-          outputPath: outputPath,
-        );
+      if (savePath == null) continue;
+
+      if (!savePath.toLowerCase().endsWith('.pdf')) {
+        savePath += '.pdf';
       }
 
-      groupIndex++;
+      if (files.length == 1) {
+        final bytes = await files.first.readAsBytes();
+        await ConversionStorage.saveFile(fullPath: savePath, bytes: bytes);
+      } else {
+        final tempDir = await getTemporaryDirectory();
+        final tempPath = path.join(tempDir.path, 'temp_merged.pdf');
+
+        await PdfMergeService.mergePdfs(
+          inputFiles: files,
+          outputPath: tempPath,
+        );
+
+        final bytes = await File(tempPath).readAsBytes();
+        await ConversionStorage.saveFile(fullPath: savePath, bytes: bytes);
+      }
     }
 
     if (!mounted) return;
@@ -289,10 +299,7 @@ Future<void> saveGroupedPages() async {
     );
 
     await Future.delayed(const Duration(seconds: 3));
-
-    if (mounted) {
-      Navigator.pop(context);
-    }
+    if (mounted) Navigator.pop(context);
   } catch (e) {
     if (!mounted) return;
 
@@ -371,70 +378,85 @@ Future<void> saveGroupedPages() async {
 
           const SizedBox(height: 8),
 
-          Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(12),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.7,
+       Expanded(
+  child: ScrollConfiguration(
+    behavior:  ScrollConfiguration.of(context).copyWith(
+      scrollbars: false,
+    ),
+    child: Scrollbar(
+      controller: _gridScrollController,
+      thumbVisibility: true,
+      thickness: 6,
+      radius: const Radius.circular(8),
+      interactive: true,
+      child: GridView.builder(
+        controller: _gridScrollController,
+        padding: const EdgeInsets.all(12),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 4,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.7,
+        ),
+        itemCount: widget.splitPages.length,
+        itemBuilder: (context, index) {
+          final pageColor = pageGroupColors[index];
+    
+          return Stack(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: pageColor ?? Colors.grey.shade400,
+                    width: 2,
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: SfPdfViewer.file(
+                    widget.splitPages[index],
+                    canShowScrollHead: false,
+                    canShowScrollStatus: false,
+                  ),
+                ),
               ),
-              itemCount: widget.splitPages.length,
-              itemBuilder: (context, index) {
-                final pageColor = pageGroupColors[index];
-
-                return Stack(
-                  children: [
-                    Container(
+    
+              Positioned.fill(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => assignColorToPage(index),
+                  ),
+                ),
+              ),
+    
+              if (pageColor != null)
+                Positioned(
+                  top: 6,
+                  left: 6,
+                  child: GestureDetector(
+                    onTap: () => removeColorFromPage(index),
+                    child: Container(
+                      width: 20,
+                      height: 20,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: pageColor ?? Colors.grey.shade400,
-                          width: 2,
-                        ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: SfPdfViewer.file(
-                          widget.splitPages[index],
-                          canShowScrollHead: false,
-                          canShowScrollStatus: false,
-                        ),
+                        color: pageColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.black, width: 1.5),
                       ),
                     ),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    ),
+  ),
+),
 
-                    Positioned.fill(
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: () => assignColorToPage(index),
-                        ),
-                      ),
-                    ),
-                    if (pageColor != null)
-                      Positioned(
-                        top: 6,
-                        left: 6,
-                        child: GestureDetector(
-                          onTap: () => removeColorFromPage(index),
-                          child: Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: pageColor,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.black, width: 1.5),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ),
           Padding(
             padding: const EdgeInsets.all(12),
             child: Center(

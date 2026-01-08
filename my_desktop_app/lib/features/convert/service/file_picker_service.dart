@@ -29,4 +29,17 @@ class FilePickerService {
     }
     return [];
   }
+
+ static Future<String?> pickSaveFile({
+    required String dialogTitle,
+    required String fileName,
+    List<String>? allowedExtensions,
+  }) async {
+    return FilePicker.platform.saveFile(
+      dialogTitle: dialogTitle,
+      fileName: fileName,
+      type: FileType.custom,
+      allowedExtensions: allowedExtensions,
+    );
+  }
 }

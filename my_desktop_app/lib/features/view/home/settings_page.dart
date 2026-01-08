@@ -23,7 +23,6 @@ class SettingsPage extends ConsumerWidget {
           ),
           const SizedBox(height: 24),
 
-          // ───────── Appearance ─────────
           _SettingsCard(
             title: 'Appearance',
             children: [
@@ -61,7 +60,6 @@ class SettingsPage extends ConsumerWidget {
 
           const SizedBox(height: 24),
 
-          // ───────── Conversion ─────────
           _SettingsCard(
             title: 'Conversion',
             children: [
@@ -84,7 +82,6 @@ class SettingsPage extends ConsumerWidget {
 
           const SizedBox(height: 24),
 
-          // ───────── Behavior ─────────
           _SettingsCard(
             title: 'Behavior',
             children: [
@@ -100,7 +97,6 @@ class SettingsPage extends ConsumerWidget {
 
           const SizedBox(height: 24),
 
-          // ───────── About ─────────
           _SettingsCard(
             title: 'About',
             children: const [

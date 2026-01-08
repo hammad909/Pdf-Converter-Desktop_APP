@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:my_desktop_app/features/convert/data/history_item.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path/path.dart' as p;
-import 'package:my_desktop_app/features/convert/data/conversion_storage.dart';
+
 
 enum FileFilter {
   all,
@@ -22,7 +23,7 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
-  List<File> allFiles = [];
+  List<HistoryItem> allFiles = [];
   FileFilter selectedFilter = FileFilter.all;
 
   @override
@@ -32,27 +33,26 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Future<void> _loadFiles() async {
-    final files = await ConversionStorage.getFiles();
+    final files = await ConversionStorage.getHistory();
     setState(() {
       allFiles = files;
     });
   }
 
-  Future<void> _deleteFile(File file) async {
+  Future<void> _deleteFile(HistoryItem file) async {
     await ConversionStorage.delete(file);
     await _loadFiles();
   }
 
-
-  List<File> get filteredFiles {
+  List<HistoryItem> get filteredFiles {
     if (selectedFilter == FileFilter.all) return allFiles;
 
     return allFiles.where((file) {
-      final ext = p.extension(file.path).toLowerCase();
+      final ext = p.extension(file.fileName).toLowerCase();
       switch (selectedFilter) {
         case FileFilter.pdf:
           return ext == '.pdf';
-           case FileFilter.rtf:
+        case FileFilter.rtf:
           return ext == '.rtf';
         case FileFilter.docx:
           return ext == '.docx';
@@ -60,7 +60,7 @@ class _HistoryPageState extends State<HistoryPage> {
           return ext == '.pptx';
         case FileFilter.html:
           return ext == '.html';
-          case FileFilter.txt:
+        case FileFilter.txt:
           return ext == '.txt';
         default:
           return true;
@@ -106,10 +106,7 @@ class _HistoryPageState extends State<HistoryPage> {
             ),
           ),
         ),
-
         const Divider(height: 1),
-
-     
         Expanded(
           child: files.isEmpty
               ? Center(
@@ -124,30 +121,53 @@ class _HistoryPageState extends State<HistoryPage> {
                   separatorBuilder: (_, _) => const Divider(),
                   itemBuilder: (context, index) {
                     final file = files[index];
-                    final fileName = p.basename(file.path);
-                    final modified = file.lastModifiedSync();
+                    final modified = File(file.fullPath).lastModifiedSync();
 
                     return ListTile(
                       leading: const Icon(Icons.insert_drive_file),
-                      title: Text(fileName),
-                      subtitle:
-                          Text('Modified: ${modified.toLocal()}'),
+                      title: Text(file.fileName),
+                      subtitle: Text(
+                          'Modified: ${modified.toLocal()}\n${p.dirname(file.fullPath)}'),
+                      isThreeLine: true,
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
                             icon: const Icon(Icons.folder_open),
                             onPressed: () {
-                              OpenFilex.open(file.parent.path);
+                              ConversionStorage.openFolder(file.fullPath);
                             },
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _deleteFile(file),
-                          ),
+                         IconButton(
+  icon: const Icon(Icons.delete, color: Colors.red),
+  onPressed: () async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Delete'),
+        content: const Text('Are you sure you want to delete this file?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('No'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _deleteFile(file);
+    }
+  },
+),
+
                         ],
                       ),
-                      onTap: () => OpenFilex.open(file.path),
+                      onTap: () => OpenFilex.open(file.fullPath),
                     );
                   },
                 ),

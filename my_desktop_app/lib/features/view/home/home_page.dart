@@ -27,13 +27,8 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('PDF Converter v1.0'),
-        elevation: 0,
-      ),
       body: Row(
         children: [
-          // Sidebar
        Container(
   width: 260,
   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -141,14 +136,17 @@ class _HomePageState extends State<HomePage> {
 ),
 
 
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Card(
-                child: pages[selectedIndex],
-              ),
-            ),
-          ),
+        Expanded(
+  child: Padding(
+    padding: const EdgeInsets.all(24),
+    child: ClipRect(
+      child: Card(
+        child: pages[selectedIndex],
+      ),
+    ),
+  ),
+),
+
         ],
       ),
     );
