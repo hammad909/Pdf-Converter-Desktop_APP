@@ -47,7 +47,7 @@ No setup. No configuration. Just smooth performance.
 
 | Operation | Description |
 |----------|------------|
-PDF Conversion | Convert PDF to DOCX, TXT, Images, etc. |
+PDF Conversion | Convert PDF to DOCX, TXT, Html, etc. |
 Reverse Conversion | Convert files back into PDF |
 Merge | Combine multiple PDFs into one |
 Split | Break PDFs into multiple documents |
