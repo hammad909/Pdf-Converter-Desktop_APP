@@ -19,7 +19,7 @@ No setup. No configuration. Just smooth performance.
 
 ---
 
-## ✨ Features
+## Features
 
 ✔ Convert **PDF → Other Formats**  
 ✔ Convert **Other Formats → PDF**  
